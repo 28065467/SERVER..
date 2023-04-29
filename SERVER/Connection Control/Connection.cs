@@ -8,9 +8,15 @@ using System.Net.Sockets;
 using SERVER;
 namespace SERVER.Connection_Control
 {
-    internal class Connection : Form1
+    internal class Connection
     {
-
+        private List<TcpClient> tcpClients;
+        private Form1 form;
+        public Connection(Form1 form)
+        {
+            tcpClients = new List<TcpClient>();
+            this.form = form;
+        }
         public static string GetLocalIpAddress()
         {
             string ipAddress = string.Empty;
@@ -27,8 +33,18 @@ namespace SERVER.Connection_Control
         }
         public void Start_Connecting()
         {
-            TcpListener listener = new TcpListener(IPAddress.Parse(tbx_IP.Text), PORT);
-            tbx_PORT.Text = (((IPEndPoint)listener.LocalEndpoint).Port).ToString();
+            TcpListener listener = new TcpListener(IPAddress.Parse(form.tbx_IP.Text), Form1.PORT);
+            listener.Start();
+            form.ADD_TO_LOG("Waiting For Connections");
+            Task.Run(() =>
+            {
+                while (true)
+                {
+                    TcpClient client = listener.AcceptTcpClient();
+                    tcpClients.Add(client);
+                    form.Invoke((MethodInvoker)(() => form.ADD_TO_LOG("Client " + client.Client.RemoteEndPoint + " is joined")));
+                }
+            });
         }
     }
 }
