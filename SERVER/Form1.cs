@@ -18,7 +18,25 @@ namespace SERVER
 
         public void ADD_TO_LOG(string message)
         {
-            list_LOG.Items.Add(message);
+            if (list_LOG.InvokeRequired)
+            {
+                list_LOG.Invoke((MethodInvoker)(() => list_LOG.Items.Add(message)));
+            }
+            else
+            {
+                list_LOG.Items.Add(message);
+            }
+        }
+        public void ADD_TO_Recv(string message)
+        {
+            if (list_Recv.InvokeRequired)
+            {
+                list_Recv.Invoke((MethodInvoker)(() => list_Recv.Items.Add(message)));
+            }
+            else
+            {
+                list_Recv.Items.Add(message);
+            }
         }
         private void button1_Click(object sender, EventArgs e)
         {
