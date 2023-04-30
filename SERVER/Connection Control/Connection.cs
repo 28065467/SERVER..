@@ -10,7 +10,7 @@ namespace SERVER.Connection_Control
 {
     internal class Connection
     {
-        private List<Socket> tcpClients;
+        private List<TcpClient> tcpClients;
         private Form1 form;
         private TcpListener listener;
         private Thread connectionThread;
@@ -18,9 +18,11 @@ namespace SERVER.Connection_Control
         Socket client;
         public Connection(Form1 form)
         {
-            tcpClients = new List<Socket>();
+            tcpClients = new List<TcpClient>();
             this.form = form;
-            listener = new TcpListener(IPAddress.Parse(form.tbx_IP.Text), Form1.PORT);
+            listener = new TcpListener(IPAddress.Parse(form.tbx_IP.Text), 8080);
+            IPEndPoint ipe = (IPEndPoint)listener.LocalEndpoint;
+            form.ADD_TO_LOG("Listening At " + ipe.Address  + ":" + ipe.Port);
         }
 
         public static string GetLocalIpAddress()
@@ -48,31 +50,43 @@ namespace SERVER.Connection_Control
         }
         private void AcceptConnections()
         {
+            TcpClient temp;
             while (true)
             {
-                client = listener.AcceptSocket();
-                tcpClients.Add(client);
-                form.ADD_TO_LOG("Client " + client.RemoteEndPoint + " is joined");
-                client_thread = new Thread(Client_Listening);
-                client_thread.IsBackground = true;
-                client_thread.Start(client);
+                temp = listener.AcceptTcpClient();
+                if (temp.Connected)
+                {
+                    tcpClients.Add(temp);
+                    form.ADD_TO_LOG("Client " + temp.Client.RemoteEndPoint + " is joined");
+                    connectionThread = new Thread(Client_Listening);
+                    connectionThread.IsBackground = true;
+                    connectionThread.Start(temp);
+                }
             }
         }
         private void Client_Listening(object clientObj)
         {
-            Socket listeningSoc = (Socket)clientObj;
-            listeningSoc.Blocking = false;
+            TcpClient listeningSoc = (TcpClient)clientObj;
+            NetworkStream networkStream = listeningSoc.GetStream(); 
+            //listeningSoc.Blocking = false;
             //Thread listeningThread = client_thread;
             while (true)
             {
                 try
                 {
-                    if (listeningSoc.Available > 0)
+                    if (networkStream.CanRead)
                     {
                         byte[] buffer = new byte[2048];
-                        int incoming = listeningSoc.Receive(buffer);
-                        string Message_From_Client = Encoding.UTF8.GetString(buffer, 0, incoming);
-                        form.ADD_TO_Recv(Message_From_Client);
+                        int BytesReaded = networkStream.Read(buffer);
+                        if (BytesReaded <= 0)
+                        {
+                            form.ADD_TO_LOG("Fail to Read");
+                        }
+                        else {
+                            form.ADD_TO_LOG("S");
+                            string Message_From_Client = Encoding.UTF8.GetString(buffer, 0, BytesReaded);
+                            form.ADD_TO_Recv("Sucessfully Receive " + Message_From_Client + " Form Client");
+                        }
                     }
                     else
                     {
@@ -81,7 +95,7 @@ namespace SERVER.Connection_Control
                 }
                 catch(Exception ex)
                 {
-
+                    form.ADD_TO_LOG("Error : " + ex.Message);
                 }
             }
         }

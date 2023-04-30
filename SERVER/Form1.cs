@@ -11,7 +11,9 @@ namespace SERVER
         {
             InitializeComponent();
             tbx_IP.Text = Connection.GetLocalIpAddress();
+            tbx_IP.Enabled = false;
             tbx_PORT.Text = PORT.ToString();
+            tbx_PORT.Enabled = false;
             list_LOG.Items.Add("The Server is ready to start");
             connection = new Connection(this); // 建立 Connection 物件
         }
@@ -41,6 +43,7 @@ namespace SERVER
         private void button1_Click(object sender, EventArgs e)
         {
             connection.Start_Connecting();
+            button1.Enabled = false;
         }
 
         private void label1_Click(object sender, EventArgs e)
@@ -52,5 +55,11 @@ namespace SERVER
         {
 
         }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            Close();
+        }
+
     }
 }
