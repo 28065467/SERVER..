@@ -61,5 +61,14 @@ namespace SERVER
             Close();
         }
 
+        private void textBox1_TextChanged_1(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            connection.SentToSingleClient(int.Parse(tbx_idtosent.Text), tbx_toSent.Text);
+        }
     }
 }

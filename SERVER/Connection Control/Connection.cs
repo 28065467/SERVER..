@@ -10,15 +10,14 @@ namespace SERVER.Connection_Control
 {
     internal class Connection
     {
-        private List<TcpClient> tcpClients;
+        private Dictionary<int ,TcpClient> tcpClients;
         private Form1 form;
         private TcpListener listener;
         private Thread connectionThread;
-        Thread client_thread;
-        Socket client;
+        private int ID = 1;
         public Connection(Form1 form)
         {
-            tcpClients = new List<TcpClient>();
+            tcpClients = new Dictionary<int, TcpClient>();
             this.form = form;
             listener = new TcpListener(IPAddress.Parse(form.tbx_IP.Text), 8080);
             IPEndPoint ipe = (IPEndPoint)listener.LocalEndpoint;
@@ -56,11 +55,13 @@ namespace SERVER.Connection_Control
                 temp = listener.AcceptTcpClient();
                 if (temp.Connected)
                 {
-                    tcpClients.Add(temp);
-                    form.ADD_TO_LOG("Client " + temp.Client.RemoteEndPoint + " is joined");
+                    tcpClients.Add(ID,temp);
+                    SentToSingleClient(ID, ID.ToString());
+                    form.ADD_TO_LOG("Client " + ID + " :" + temp.Client.RemoteEndPoint + " is joined");
                     connectionThread = new Thread(Client_Listening);
                     connectionThread.IsBackground = true;
                     connectionThread.Start(temp);
+                    ID++;
                 }
             }
         }
@@ -83,20 +84,61 @@ namespace SERVER.Connection_Control
                             form.ADD_TO_LOG("Fail to Read");
                         }
                         else {
-                            form.ADD_TO_LOG("S");
                             string Message_From_Client = Encoding.UTF8.GetString(buffer, 0, BytesReaded);
                             form.ADD_TO_Recv("Sucessfully Receive " + Message_From_Client + " Form Client");
                         }
                     }
-                    else
-                    {
-                        Thread.Sleep(100);
-                    }
+
                 }
                 catch(Exception ex)
                 {
                     form.ADD_TO_LOG("Error : " + ex.Message);
                 }
+            }
+        }
+        public void SentToAllClient(string Mesaage)
+        {
+            byte[] data = Encoding.UTF8.GetBytes(Mesaage);
+            foreach (var kvp in tcpClients)
+            {
+                int Client_ID = kvp.Key;
+                TcpClient client = tcpClients[Client_ID];
+                NetworkStream networkStream = client.GetStream();
+                try
+                {
+                    if (networkStream.CanWrite)
+                    {
+                        networkStream.Write(data, 0, data.Length);
+                        form.ADD_TO_LOG("Message " + Mesaage + "is sent to Client " + Client_ID);
+                    }
+                    else
+                        form.ADD_TO_LOG("Fail to sent to Client " + Client_ID);
+                }
+                catch(IOException ex)
+                {
+                    form.ADD_TO_LOG(ex.Message);
+                }
+            }
+
+        }
+        public void SentToSingleClient(int Client_ID, string Mesaage)
+        {
+            byte[] data = Encoding.UTF8.GetBytes(Mesaage);
+            TcpClient client = tcpClients[Client_ID];
+            NetworkStream networkStream = client.GetStream();
+            try
+            {
+                if (networkStream.CanWrite)
+                {
+                    networkStream.Write(data, 0, data.Length);
+                    form.ADD_TO_LOG("Message " + Mesaage + "is sent to Client " + Client_ID);
+                }
+                else
+                    form.ADD_TO_LOG("Fail to sent to Client " + Client_ID);
+            }
+            catch (IOException ex)
+            {
+                form.ADD_TO_LOG(ex.Message);
             }
         }
 
